@@ -218,23 +218,42 @@ export function App() {
           const pageIdx = currentPage - 1;
           const dims = pageDimensionsMap[pageIdx] || { width: 595.28, height: 841.89 };
 
-          const newImage: ImageElement = {
-            id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-            type: 'image',
-            pageIndex: pageIdx,
-            x: (dims.width - 150) / 2,
-            y: (dims.height - 150) / 2,
-            width: 150,
-            height: 150,
-            rotation: 0,
-            imageDataUrl: dataUrl,
-            imageType,
-          };
+          // Measure intrinsic aspect ratio
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 200;
+            let width = maxDim;
+            let height = maxDim;
 
-          const nextElements = [...currentElements, newImage];
-          pushHistory(nextElements);
-          setSelectedElementId(newImage.id);
-          setActiveTool('select');
+            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+              if (img.naturalWidth >= img.naturalHeight) {
+                width = maxDim;
+                height = Math.round(maxDim * (img.naturalHeight / img.naturalWidth));
+              } else {
+                height = maxDim;
+                width = Math.round(maxDim * (img.naturalWidth / img.naturalHeight));
+              }
+            }
+
+            const newImage: ImageElement = {
+              id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+              type: 'image',
+              pageIndex: pageIdx,
+              x: (dims.width - width) / 2,
+              y: (dims.height - height) / 2,
+              width,
+              height,
+              rotation: 0,
+              imageDataUrl: dataUrl,
+              imageType,
+            };
+
+            const nextElements = [...currentElements, newImage];
+            pushHistory(nextElements);
+            setSelectedElementId(newImage.id);
+            setActiveTool('select');
+          };
+          img.src = dataUrl;
         }
       };
       reader.readAsDataURL(file);

@@ -144,6 +144,12 @@ export const TransformableElement: React.FC<TransformableElementProps> = ({
         }
       }
 
+      // Proportional aspect ratio locking on corner handles for images, signatures, and drawings
+      if (element.type !== 'text' && handle.length === 2) {
+        const aspectRatio = startH / startW;
+        newH = Math.max(15, Math.round(newW * aspectRatio));
+      }
+
       // If text element, dynamically scale font size on corner resize
       let newFontSize = startFontSize;
       if (element.type === 'text' && handle.length === 2) {
@@ -269,7 +275,7 @@ export const TransformableElement: React.FC<TransformableElementProps> = ({
           <img
             src={element.imageDataUrl}
             alt={element.type}
-            className="w-full h-full object-contain pointer-events-none"
+            className="w-full h-full object-fill pointer-events-none"
           />
         )}
       </div>
