@@ -81,7 +81,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   isExporting,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-3 shadow-md">
+    <header className="shrink-0 z-50 w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-3 shadow-md">
       {/* Left: Branding & File Info */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 font-bold text-white text-lg">

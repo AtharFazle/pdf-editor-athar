@@ -46,8 +46,64 @@ export function App() {
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+  const isProgrammaticScrollRef = useRef<boolean>(false);
 
   const currentElements = history[historyIndex] || [];
+
+  // Scroll main viewport to target page when page is selected
+  const handlePageSelect = useCallback((pageNum: number) => {
+    setCurrentPage(pageNum);
+    const targetEl = document.getElementById(`pdf-page-${pageNum}`);
+    if (targetEl) {
+      isProgrammaticScrollRef.current = true;
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 600);
+    }
+  }, []);
+
+  // Sync currentPage with scroll position in main canvas viewport
+  useEffect(() => {
+    if (!pdfDocument || totalPages === 0) return;
+    const container = mainContainerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isProgrammaticScrollRef.current) return;
+
+        let maxRatio = 0;
+        let visiblePage = currentPage;
+
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+            maxRatio = entry.intersectionRatio;
+            const match = entry.target.id.match(/^pdf-page-(\d+)$/);
+            if (match) {
+              visiblePage = parseInt(match[1], 10);
+            }
+          }
+        });
+
+        if (maxRatio > 0.25) {
+          setCurrentPage(visiblePage);
+        }
+      },
+      {
+        root: container,
+        threshold: [0.1, 0.3, 0.5, 0.7, 0.9],
+      }
+    );
+
+    for (let i = 1; i <= totalPages; i++) {
+      const el = document.getElementById(`pdf-page-${i}`);
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, [pdfDocument, totalPages, currentPage]);
 
   // Helper to push a new state into history
   const pushHistory = useCallback(
@@ -382,7 +438,7 @@ export function App() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden select-none">
+    <div className="h-screen w-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden select-none">
       {/* Hidden File Input for Image Upload */}
       <input
         ref={imageInputRef}
@@ -421,7 +477,7 @@ export function App() {
         onZoomReset={() => setScale(1.0)}
         currentPage={currentPage}
         totalPages={totalPages}
-        onPageChange={(page) => setCurrentPage(page)}
+        onPageChange={(page) => handlePageSelect(page)}
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
         onUndo={handleUndo}
@@ -443,24 +499,25 @@ export function App() {
       />
 
       {/* Main Workspace Area */}
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {/* Left Sidebar Thumbnails */}
         <Sidebar
           pdfDocument={pdfDocument}
           totalPages={totalPages}
           currentPage={currentPage}
-          onPageSelect={(p) => setCurrentPage(p)}
+          onPageSelect={(p) => handlePageSelect(p)}
           isOpen={true}
         />
 
         {/* Central Canvas Viewport */}
         <main
+          ref={mainContainerRef}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setSelectedElementId(null);
             }
           }}
-          className="flex-1 overflow-auto p-8 flex flex-col items-center gap-8 bg-slate-950/90 relative"
+          className="flex-1 min-h-0 overflow-auto p-8 flex flex-col items-center gap-8 bg-slate-950/90 relative"
         >
           {Array.from({ length: totalPages }, (_, pageIdx) => {
             const dims = pageDimensionsMap[pageIdx] || { width: 595.28, height: 841.89 };
